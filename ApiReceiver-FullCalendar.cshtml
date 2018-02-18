@@ -1,0 +1,107 @@
+@inherits Umbraco.Web.Mvc.UmbracoTemplatePage
+@using YourNameSpace.Controllers
+
+@{
+    <div id="js-calendar" class="calendar"></div>
+
+    //Place the modal vertically in the middle (for BootStraps modal)
+    <style>
+        .modal {
+            text-align: center;
+            padding: 0 !important;
+        }
+
+            .modal:before {
+                content: '';
+                display: inline-block;
+                height: 100%;
+                vertical-align: middle;
+                margin-right: -4px; /* Adjusts for spacing */
+            }
+
+        .modal-dialog {
+            display: inline-block;
+            text-align: left;
+            vertical-align: middle;
+        }
+    </style>
+
+    <!-- Modal -->
+    <div class="modal fade calendar-modal" id="calendar-modal" role="dialog">
+        <div class="modal-dialog">
+
+            <!-- Modal content-->
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title h4-like" id="modal-title"></div>
+                    <div class="modal-date h5-like" id="modal-date"></div>
+                </div>
+                <div class="modal-body" id="modal-body"></div>
+                <div class="modal-footer" id="modal-footer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getEventJSON(callback) {
+            //grab the JSON created by ApiCreatorController
+            var calendarJSON = $.ajax('http://localhost:57884/umbraco/api/GeneralEvents/GetGeneralEvents', {
+                success: function (calendarArray) {
+                    callback(calendarArray);
+                }
+            });
+        }
+        $(document).ready(function () {
+            getEventJSON(function (data) {
+                var jsEvents = data.Events;
+                var fullCalendarEvents = [];
+
+                for (i = 0; i < jsEvents.length; i++) {
+                    var fullCalendarEvent = {
+                        title: jsEvents[i].EventTitle,
+                        start: jsEvents[i].EventDate,
+                    };
+
+                    if (jsEvents[i].EventColour != null) {
+                        fullCalendarEvent.color = "#" + jsEvents[i].EventColour.toString();
+                    }
+
+                    if (jsEvents[i].EventDescription != null) {
+                        fullCalendarEvent.description = jsEvents[i].EventDescription.toString();
+                    }
+                    else {
+                        fullCalendarEvent.description = "Click read more button if you are interested!";
+                    } 
+
+                    if (jsEvents[i].EventLink != null && jsEvents[i].EventLink.length > 0) {
+                        fullCalendarEvent.link = jsEvents[i].EventLink;
+                    }
+                    else {
+                        fullCalendarEvent.link = "http://google.com";
+                    }
+
+                    fullCalendarEvents.push(fullCalendarEvent);
+                }
+
+
+                // render FullCalendar
+                $('#js-calendar').fullCalendar({
+                    editable: true,
+                    eventLimit: 2, // allow "more" link when too many events
+                    events: fullCalendarEvents,
+                    windowResize: true,
+                    selectable: true,
+                    selectHelper: true,
+                    eventClick: function (event) {
+                        var titleDate = moment(event.start).format('ddd DD MMM YYYY HH:mm a');
+                        $('#calendar-modal').modal();
+                        document.getElementById("modal-title").innerHTML = event.title;
+                        document.getElementById("modal-date").innerHTML = titleDate;
+                        document.getElementById("modal-body").innerHTML = event.description;
+                        document.getElementById("modal-footer").innerHTML = '<a href="' + event.link + '" target="_blank" class="btn">Read More</a><button type="button" class="btn" data-dismiss="modal">Close</button>';
+                    }
+                });
+            });
+        });
+    </script>
+}
